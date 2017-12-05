@@ -1,4 +1,18 @@
 #!/usr/bin/env python
+"""
+This module backs up a SmartSheet via the REST API and saves it in a JSON file. The backup includes
+the history of each cell = who did what when.
+
+Dependencies:
+   1. Python3
+	2. smartsheet-python-sdk (https://github.com/smartsheet-platform/smartsheet-python-sdk)
+
+Example:
+   export SMARTSHEET_ACCESS_TOKEN="your access token"
+   python3 smartsheets-backup.py --sheet-name="some smartsheet name" --backup-dir="backup directory"
+
+"""
+
 
 import smartsheet
 import logging
@@ -15,17 +29,21 @@ ACCESS_TOKEN = os.environ["SMARTSHEET_ACCESS_TOKEN"];
 logging.basicConfig(level=logging.WARN);
 
 def setup_file_log(log_file):
+	""" Setup file logging (for later use)"""
+	
 	fileh = logging.FileHandler(log_file, 'a')
 	formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 	fileh.setFormatter(formatter)
 
-	log = logging.getLogger()  # root logger
-	for hdlr in log.handlers[:]:  # remove all old handlers
+	log = logging.getLogger()  
+	for hdlr in log.handlers[:]: 
 		log.removeHandler(hdlr);
 	log.addHandler(fileh);
 
+
 class SmartsheetBackup(object):
 	def __init__(self):
+		""" Constructor - initialze access using ACCESS_TOKEN"""
 		try:
 			self.smart_sheets = smartsheet.Smartsheet(ACCESS_TOKEN);
 		except Exception as e:
@@ -36,10 +54,19 @@ class SmartsheetBackup(object):
 
 
 	def get_all_sheets(self):
+		""" Return list of all user's SmartSheets"""
 		return self.smart_sheets.Sheets.list_sheets(include_all=True);
 
 	
 	def get_sheet_id_from_name(self, sheet_name):
+		""" Given a name of a SmartSheet, return the SmartSheet ID
+		
+		Args:
+		    sheet_name (str): Name of a SmartSheet
+			 
+		Returns:
+		    str: ID of the SmartSheet as a string
+		"""
 		sheet_id = None;
 	
 		all_sheets = self.get_all_sheets();
@@ -51,6 +78,13 @@ class SmartsheetBackup(object):
 
 
 	def backup_smart_sheet(self, sheet_name, directory=None, file_name=None):
+		""" Gets history of each cell of the SmartSheet and writes it into a JSON file
+		
+		Args:
+		    sheet_name (str): Name of the SmartSheet
+			 directory  (str): Directory where the JSON outputh should go
+			 file_name  (str): Name of the JSON file. Defaults to modified sheet_name+timestamp
+		""" 
 
 		timestamp = datetime.datetime.now();
 		sheet_id = self.get_sheet_id_from_name(sheet_name);	
@@ -70,10 +104,6 @@ class SmartsheetBackup(object):
 			column_map[column.title] = column.id;
 
 	
-		#for row in test_sheet.rows[:1]:
-		#	print(row);
-	
-		#print(test_sheet.to_json());
 	
 		backup_date_time = timestamp.strftime("%a, %d %b %Y %H:%M:%S");
 		backup_sheet = {};
@@ -124,6 +154,5 @@ if __name__ == '__main__':
 	
 	sb.backup_smart_sheet(args.sheet_name, directory=args.backup_dir, file_name=args.backup_file);
 	
-	#"Test for Petr"
 	
 		
